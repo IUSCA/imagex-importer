@@ -56,28 +56,30 @@ def register_new_image(fitsfile):
 
     params = extract_header.load_header(fitsfile)
     params["size"] = os.path.getsize(fitsfile)
-    p = requests.post(url+'/imagex-api/exposures', json=params)
+    p = requests.post(url+'/api/exposures', json=params)
     if p.status_code == 200:
         res = json.loads(p.content)
         return res[u'id']
     else:
+        print p
         return None
 
 if __name__ == "__main__":
 
     infile = sys.argv[1]
     fitsfiles = [infile]
+    master_pid = None
 
+    if os.path.isdir(infile):
+        print "Starting in batch mode"
+        master_pid = status.make_new_process('Batch Image Import', owner='Importer')
+        for f in os.listdir(infile):
+            if '.fits' in f:
+                fitsfiles.append(os.path.join(infile, f))
+    else:
+        print "Starting in single-file mode"
 
-    # if not os.path.isdir(scandir):
-    #     print "Cannot locate %s to scan" % scandir
-    #     sys.exit(1)
-    #
-    # for f in os.listdir(scandir):
-    #     if '.fits' in f:
-    #         fitsfiles.append(os.path.join(scandir, f))
-
-    master_pid = status.make_new_process('Image Import',owner='Importer')
+    # master_pid = status.make_new_process('Image Import',owner='Importer')
     #
     # if len(fitsfiles) < 1:
     #     print "No valid input files found in %s" % scandir
@@ -86,7 +88,7 @@ if __name__ == "__main__":
     try:
         tile_dir = sys.argv[2]
     except:
-        tile_dir = os.path.join(outfolder, 'test_tiles')
+        tile_dir = outfolder
 
     mkdirs(tile_dir)
     status.update_process(master_pid, status='WORKING')

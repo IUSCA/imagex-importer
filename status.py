@@ -10,6 +10,8 @@ from config import *
 
 def make_new_process(proc_name='NEWPROCESS',status='NEW',owner='Nobody',refID='None',parentID='None'):
     us = url + proc_api
+    if not parentID:
+        parentID = 'None'
     data = {'name': proc_name,
             'progress': 0.0,
             'status': status,
@@ -27,6 +29,8 @@ def make_new_process(proc_name='NEWPROCESS',status='NEW',owner='Nobody',refID='N
     return res['id']
 
 def update_process(pid,  status='WORKING', progress=0.0):
+    if not pid:
+        return
     us = url + proc_api +"/"+pid
     data = {'progress': progress, 'status' : status}
     headers = {"Content-type": 'application/json',
@@ -35,6 +39,8 @@ def update_process(pid,  status='WORKING', progress=0.0):
     #print r.status_code, r.reason
 
 def complete_process(pid,  status='COMPLETE', progress=1.0):
+    if not pid:
+        return
     us = url + proc_api +"/"+pid
     data = {'progress': progress,
             'status' : status,

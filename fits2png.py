@@ -58,7 +58,11 @@ if __name__ == "__main__":
     #
     # Find best scaling
     #
-    data = hdulist[0].data
+    if '.fz' in infile:
+        data = hdulist[1].data
+    else:
+        data = hdulist[0].data
+
     data = zoom(data, options.resize)
     data = numpy.asfarray(data)
     if data is None:

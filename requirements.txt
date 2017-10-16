@@ -4,3 +4,4 @@ astropy==2.0.2
 Pillow==4.2.1
 scikit-image==0.13.0
 watchdog==0.8.3
+requests==2.18.4
