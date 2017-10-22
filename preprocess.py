@@ -67,7 +67,7 @@ def register_new_image(fitsfile):
 if __name__ == "__main__":
 
     infile = sys.argv[1]
-    fitsfiles = [infile]
+    fitsfiles = []
     master_pid = None
 
     if os.path.isdir(infile):
@@ -78,6 +78,7 @@ if __name__ == "__main__":
                 fitsfiles.append(os.path.join(infile, f))
     else:
         print "Starting in single-file mode"
+        fitsfiles.append(infile)
 
     # master_pid = status.make_new_process('Image Import',owner='Importer')
     #
