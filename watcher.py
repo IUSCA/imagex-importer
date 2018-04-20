@@ -99,7 +99,7 @@ if __name__ == "__main__":
     t.daemon = True
     t.start()
 
-    observer.schedule(FITSHandler(), config.dropfolder)
+    observer.schedule(FITSHandler(), config.dropfolder, recursive=True)
     observer.start()
     try:
         while True:

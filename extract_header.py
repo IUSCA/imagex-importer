@@ -44,7 +44,7 @@ def load_header(filename):
     h["COMMENT"] = temp.replace("\n", "  ")  # put comments back in
 
     results = {
-        'name' : h['OBJECT'],
+        'name' : get_key(h, ['OBJECT','TILENAME'], 'Unknown'),
         'filter': h['FILTER'],
         'width': h['NAXIS1'],
         'height': h['NAXIS2'],
