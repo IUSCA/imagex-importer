@@ -8,6 +8,7 @@ import requests
 import json
 import status
 import extract_header
+from optparse import OptionParser
 
 from config import *
 
@@ -50,28 +51,52 @@ def external_call(cmd_string, name='external process'):
         sys.exit(1)
 
 
-def register_new_image(fitsfile):
+def register_new_image(fitsfile, batch=False):
     if not os.path.isfile(fitsfile):
         return None
 
     params = extract_header.load_header(fitsfile)
+    if not batch:
+        params["owner"] = os.path.basename(os.path.dirname(fitsfile))
+    params["filename"] = os.path.basename(fitsfile)
     params["size"] = os.path.getsize(fitsfile)
-    p = requests.post(url+'/api/exposures', json=params)
+    p = requests.post(url+'/exposures', json=params)
     if p.status_code == 200:
         res = json.loads(p.content)
-        return res[u'id']
+        print res
+        p2 = {}
+        p2["keys"] = params["header"]
+        print res
+        p2["exposureId"] = res
+        q = requests.post(url+'/headers', json=p2)
+        if q.status_code == 200:
+            print "Registered the header"
+        else:
+            print "Didn't register the header"
+        return res
     else:
         print p
         return None
 
 if __name__ == "__main__":
 
+    parser = OptionParser()
+    parser.add_option("--fixed", dest="fixed",
+                      help="Do import with fixed scaling.  Uses BT.709 scaling algorithm",
+                      action="store_true")
+    parser.add_option("--fixid", dest="fixid",
+                      help="id to assign to this batch import",
+                      default="defaultId")
+    (options, cmdline_args) = parser.parse_args()
+
     infile = sys.argv[1]
     fitsfiles = []
     master_pid = None
+    batch = False
 
     if os.path.isdir(infile):
         print "Starting in batch mode"
+        batch = True
         master_pid = status.make_new_process('Batch Image Import', owner='Importer')
         for f in os.listdir(infile):
             if '.fits' in f:
@@ -86,10 +111,7 @@ if __name__ == "__main__":
     #     print "No valid input files found in %s" % scandir
     #     sys.exit(1)
 
-    try:
-        tile_dir = sys.argv[2]
-    except:
-        tile_dir = outfolder
+    tile_dir = outfolder
 
     mkdirs(tile_dir)
     status.update_process(master_pid, status='WORKING')
@@ -100,7 +122,7 @@ if __name__ == "__main__":
         cleanup = []
 
         name = os.path.basename(f)
-        fid = register_new_image(f)
+        fid = register_new_image(f, batch)
         pid = status.make_new_process('Import %s' % name, owner='Importer', refID=fid, parentID=master_pid)
 
         if fid == None:
@@ -111,7 +133,10 @@ if __name__ == "__main__":
             status.update_process(pid,status='Registered metadata',progress=0.1)
 
         outpng = os.path.join(tmp_dir, fid + '.png')
-        cmd = 'python2.7 -W ignore fits2png.py %s --scale adaptive --out %s --nsamples 2500 --resize 1.0' % (f, outpng)
+        if options.fixed:
+            cmd = 'python2.7 -W ignore fits2png.py %s --scale BT.709 --fixed fixed_import.cfg --fixid %s --out %s --resize 0.25' % (f, options.fixid, outpng)
+        else:
+            cmd = 'python2.7 -W ignore fits2png.py %s --scale adaptive --out %s --nsamples 2500 --resize 0.5' % (f, outpng)
         retcode = external_call(cmd, 'fits2png')
         if retcode:
             cleanup_files(cleanup)
@@ -119,6 +144,13 @@ if __name__ == "__main__":
             break
         else:
             status.update_process(pid, status='Converted FITS to PNG', progress=0.5)
+            target_dir = os.path.join(files_dir, fid)
+            mkdirs(target_dir)
+            cmd = 'mv %s %s' % (f, target_dir + '/')
+            retcode = external_call(cmd, 'fileStore')
+            if retcode:
+                status.update_process(pid, status='Error moving file')
+                break
 
         cleanup.append(outpng)
 

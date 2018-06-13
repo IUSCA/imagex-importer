@@ -1,4 +1,4 @@
-FROM python:2.7
+FROM python:2.7.14-jessie
 
 RUN apt-get update && apt-get install -y \
         libtiff5-dev libjpeg62-turbo-dev zlib1g-dev libfreetype6-dev

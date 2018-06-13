@@ -45,7 +45,7 @@ def process_new_worker():
             else:
                 cmd = config.process_cmd + src_path
                 external_call(cmd, 'PreProcessor')
-                os.remove(src_path)
+                # os.remove(src_path)  ## Let the preprocessor decide to remove/keep/move file
                 import_queue.task_done()
         time.sleep(1)
 

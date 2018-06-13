@@ -8,10 +8,10 @@ from datetime import datetime
 
 from config import *
 
-def make_new_process(proc_name='NEWPROCESS',status='NEW',owner='Nobody',refID='None',parentID='None'):
+def make_new_process(proc_name='NEWPROCESS',status='NEW',owner=None,refID=None,parentID=None):
     us = url + proc_api
     if not parentID:
-        parentID = 'None'
+        parentID = None
     data = {'name': proc_name,
             'progress': 0.0,
             'status': status,
@@ -26,7 +26,7 @@ def make_new_process(proc_name='NEWPROCESS',status='NEW',owner='Nobody',refID='N
     #print r.status_code, r.reason
     res = json.loads(r.content)
     #print res
-    return res['id']
+    return res
 
 def update_process(pid,  status='WORKING', progress=0.0):
     if not pid:

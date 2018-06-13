@@ -6,14 +6,17 @@ import json
 import os, sys
 from collections import OrderedDict as od
 
-def get_zeros(header):
+def get_corners(header):
 
     # Parse the WCS keywords in the primary HDU
-    w = wcs.WCS(header)
+    _wcs = wcs.WCS(header)
 
     #get RA,DEC of image coords 0,0
-    zeros = w.all_pix2world([[0,0]], 0, ra_dec_order=True)
-    return zeros[0]
+    w = header['NAXIS1'] - 1
+    h = header['NAXIS2'] - 1
+    ccs = [[0,0],[w,0],[w,h],[0,h]]
+    corners = _wcs.all_pix2world(ccs, 0, ra_dec_order=True)
+    return corners.tolist()
 
 def get_key(header, keywords, default):
     for k in keywords:
@@ -30,6 +33,12 @@ def header_to_orderdict(h, exclude=[]):
             d[key] = value
     return d
 
+def header_to_array(h, exclude=[]):
+    a = []
+    for key, value in h.items():
+        if key not in exclude:
+            a.append({'key':key, 'value':value, 'comment': h.comments[key]})
+    return a
 
 def load_header(filename):
     hdulist = fits.open(filename)
@@ -37,11 +46,14 @@ def load_header(filename):
         h = hdulist[1].header
     else:
         h = hdulist[0].header
-    zeros = get_zeros(h)
+    corners = get_corners(h)
     h["FILENAME"] = os.path.basename(filename)
-    temp = str(str(h["COMMENT"]).encode('ascii', 'ignore'))  # encode in ascii as unicode doesn't play nice
-    h = header_to_orderdict(h, ['COMMENT'])
-    h["COMMENT"] = temp.replace("\n", "  ")  # put comments back in
+    try:
+        temp = str(str(h["COMMENT"]).encode('ascii', 'ignore'))  # encode in ascii as unicode doesn't play nice
+    except:
+        temp = "No comments"
+    _h = header_to_orderdict(h, ['COMMENT'])
+    _h["COMMENT"] = temp.replace("\n", "  ")  # put comments back in
 
     results = {
         'name' : get_key(h, ['OBJECT','TILENAME'], 'Unknown'),
@@ -49,9 +61,12 @@ def load_header(filename):
         'width': h['NAXIS1'],
         'height': h['NAXIS2'],
         'pixelscale': get_key(h, ['PIXSCAL1', 'PIXLSCAL'], 0.2),
-        'ra0': zeros[0],
-        'dec0': zeros[1],
-        'header': h
+        'corners' : corners,
+        'ra0': corners[0][0],
+        'dec0': corners[0][1],
+        'loc.type' : 'Point',
+        'loc.coordinates' : [corners[0][0] - 180.0, corners[0][1]],
+        'header': _h
     }
 
     #print results
